@@ -1,5 +1,6 @@
 #include "BehaviorTree.h"
 
+
 using namespace bt;
 
 enum NODETYPE { NONE = -1, SEQUENCE, SELECTOR, ALTERNATE, INVERSER, CONDITION, LOOP, COOLDOWN, OPEN_FRIDGE, FORCE_FRIDGE, TAKE_BEER, CLOSE_FRIDGE };
@@ -29,7 +30,8 @@ public:
 	}
 
 	NODETYPE getType() { return m_type; }
-	std::list<PatronNode> getChildren() { return m_child; }
+	std::list<PatronNode>& getChildrens() { return m_child; }
+	PatronNode& getChild(int index) { return *std::next(m_child.begin(), index); }
 	PatronNode* getParent() { return m_parent; }
 
 	void display(unsigned int space) {
@@ -93,7 +95,7 @@ NodePtr InitBehavior(PatronNode& patron)
 
 	node = NodeFactory(patron.getType());
 
-	for (auto& i : patron.getChildren())
+	for (auto& i : patron.getChildrens())
 	{
 		CreateBehaviorTree(node, i);
 	}
@@ -122,13 +124,23 @@ void CreateBehaviorTree(NodePtr bt, PatronNode& patron)
 
 	*node = NodeFactory(patron.getType());
 
-	for (auto& i : patron.getChildren())
+	for (auto& i : patron.getChildrens())
 	{
 		CreateBehaviorTree(*node, i);
 	}
 }
 
-
+void showAllNodePossible()
+{
+	int index = 0;
+	while (1)
+	{
+		std::cout << index << ". " << PatronNode::m_idToString[static_cast<NODETYPE>(index)] << std::endl;
+		index++;
+		if (PatronNode::m_idToString.find(static_cast<NODETYPE>(index)) == PatronNode::m_idToString.end())
+			break;
+	}
+}
 
 int main()
 {
@@ -147,16 +159,62 @@ int main()
 		
 
 	PatronNode root(SEQUENCE);
-	auto &Selector_Open = root.add(PatronNode(SELECTOR));
-	Selector_Open.add(PatronNode(OPEN_FRIDGE));
-	Selector_Open.add(PatronNode(FORCE_FRIDGE));
+	
 
-	auto& Selector_Beer = root.add(PatronNode(SELECTOR));
-	auto& Condition_Beer = Selector_Beer.add(PatronNode(CONDITION));
-	Condition_Beer.add(PatronNode(TAKE_BEER));
-	Selector_Beer.add(PatronNode(CLOSE_FRIDGE));
-	root.add(PatronNode(CLOSE_FRIDGE));
 
+	auto currentNode = &root;
+	while (1)
+	{
+		std::cout << "Choose what to do with the node" << std::endl;
+		std::cout << "Current Node: " << PatronNode::m_idToString[currentNode->getType()] << std::endl;
+		std::cout << "1. Show Tree" << std::endl;
+		std::cout << "2. Add Child" << std::endl;
+		std::cout << "3. Change Node" << std::endl;
+		if(currentNode->getParent() != nullptr)
+		std::cout << "4. Return back to the parent node" << std::endl;
+		std::cout << "0. Exit" << std::endl;
+
+		int choice;
+		std::cin >> choice;
+
+		if (choice == 1)
+		{
+			root.display(0);
+		}
+		else if (choice == 2)
+		{
+			showAllNodePossible();
+
+
+			int type;
+			std::cin >> type;
+
+			currentNode = &currentNode->add(PatronNode(static_cast<NODETYPE>(type-1)));
+		}
+		else if (choice == 3)
+		{
+			showAllNodePossible();
+
+			int type;
+			std::cin >> type;
+
+			*currentNode = PatronNode(static_cast<NODETYPE>(type - 1));
+		}
+		else if (choice == 4)
+		{
+			currentNode = currentNode->getParent();
+		}
+		else if (choice == 0)
+		{
+			break;
+		}
+		else
+		{
+			std::cout << "Invalid Choice" << std::endl;
+		}
+		system("pause");
+		system("CLS");
+ 	}
 
 	auto root_bt = InitBehavior(root);
 

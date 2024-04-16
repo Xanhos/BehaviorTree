@@ -4,6 +4,7 @@
 #include <memory>
 #include <functional>
 
+#define SECURE_TASK(task) (task ? task->tick() : false)
 
 namespace bt
 {
@@ -125,7 +126,7 @@ namespace bt
 		public:
 			Inverser() : Decorator() {}
 			Inverser(NodePtr task) : Decorator(task) {}
-			virtual bool tick() { return !m_task->tick(); }
+			virtual bool tick() { return  SECURE_TASK(m_task); }
 		};
 
 		class Loop : public Decorator
@@ -138,15 +139,18 @@ namespace bt
 			void setLoop(unsigned int loop) { m_loopNbr = loop; }
 
 			virtual bool tick() {
-				if (m_loopNbr)
-					for (unsigned int i = 0; i < m_loopNbr; i++)
-					{
-						if (m_task->tick())
-							return true;
-					}
-				else while (!m_task->tick()) {};
+				if(m_task)
+				{
+					if (m_loopNbr)
+						for (unsigned int i = 0; i < m_loopNbr; i++)
+						{
+							if (m_task->tick())
+								return true;
+						}
+					else while (!m_task->tick()) {};
 
-				return false;
+					return false;
+				}
 			}
 		};
 
@@ -163,7 +167,7 @@ namespace bt
 				if (m_timer > m_executionTimer)
 				{
 					m_timer = 0.f;
-					return m_task->tick();
+					return SECURE_TASK(m_task);
 				}
 				return false;
 			}
@@ -179,7 +183,7 @@ namespace bt
 			virtual bool tick() {
 				if (m_condition)
 					if (m_condition())
-						return m_task->tick();
+						return SECURE_TASK(m_task);
 				return false;
 			}
 		};
@@ -195,7 +199,7 @@ namespace bt
 			std::function<bool()> m_tick;
 		public:
 			NodeFunc(std::function<bool()> tick) { m_tick = tick; }
-			virtual bool tick() { return m_tick(); }
+			virtual bool tick() { return (m_tick ? m_tick() : false); }
 		};
 	}
 
